@@ -3,7 +3,7 @@
 #
 # Minimal Linux-like bit manipulation helper functions test
 #
-# Copyright (c) 2012-2014, Sven Eckelmann <sven@narfation.org>
+# Copyright (c) 2012-2017, Sven Eckelmann <sven@narfation.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
