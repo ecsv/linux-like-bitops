@@ -26,6 +26,12 @@
 
 #include <stdint.h>
 
+/**
+ * BITOPS_BUILD_BUG_ON - create "negative array" build error on expression
+ * @e: expression which is considered to be a "bug"
+ */
+#define BITOPS_BUILD_BUG_ON(e) ((void)sizeof(char[1 - 2 * !!(e)]))
+
 static __inline__ uint8_t getnum(void)
 {
 	static uint16_t s1 = UINT16_C(2);

@@ -41,11 +41,6 @@ extern "C" {
 #define __inline__ __inline
 #endif
 
-/**
- * BITOPS_BUILD_BUG_ON - create "negative array" build error on expression
- * @e: expression which is considered to be a "bug"
- */
-#define BITOPS_BUILD_BUG_ON(e) ((void)sizeof(char[1 - 2 * !!(e)]))
 
 /**
  * BITOPS_DIV_CEIL - calculate quotient of integer division (round up)
@@ -138,42 +133,26 @@ static __inline__ size_t bitops_ffs(unsigned long x)
 	return __builtin_ffsl(x);
 #else
 	size_t i = 1;
-
-	BITOPS_BUILD_BUG_ON(BITS_PER_LONG != 32 && BITS_PER_LONG != 64);
+	size_t shift = 0;
+	unsigned long t;
 
 	if (x == 0)
 		return 0;
 
-	if (BITS_PER_LONG == 64) {
-		if ((0x00000000fffffffful & x) == 0) {
-			i += 32;
-			x >>= 32;
+	t = ~0UL;
+	shift = BITS_PER_LONG;
+
+	shift /= 2;
+	t >>= shift;
+
+	while (shift) {
+		if ((t & x) == 0) {
+			i += shift;
+			x >>= shift;
 		}
-	}
 
-	if ((0x0000fffful & x) == 0) {
-		i += 16;
-		x >>= 16;
-	}
-
-	if ((0x00fful & x) == 0) {
-		i += 8;
-		x >>= 8;
-	}
-
-	if ((0x0ful & x) == 0) {
-		i += 4;
-		x >>= 4;
-	}
-
-	if ((0x3ul & x) == 0) {
-		i += 2;
-		x >>= 2;
-	}
-
-	if ((0x1ul & x) == 0) {
-		i += 1;
-		x >>= 1;
+		shift /= 2;
+		t >>= shift;
 	}
 
 	return i;
