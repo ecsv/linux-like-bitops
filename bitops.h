@@ -614,7 +614,7 @@ static __inline__ void bitmap_clear(unsigned long *bitmap, size_t start,
  *
  * Return: bit position of next set bit, @bits when no set bit was found
  */
-static __inline__ size_t find_next_bit(unsigned long *bitmap, size_t bits,
+static __inline__ size_t find_next_bit(const unsigned long *bitmap, size_t bits,
 				       size_t start)
 {
 	size_t i;
@@ -680,8 +680,8 @@ static __inline__ size_t find_next_bit(unsigned long *bitmap, size_t bits,
  *
  * Return: bit position of next clear bit, @bits when no clear bit was found
  */
-static __inline__ size_t find_next_zero_bit(unsigned long *bitmap, size_t bits,
-					    size_t start)
+static __inline__ size_t find_next_zero_bit(const unsigned long *bitmap,
+					    size_t bits, size_t start)
 {
 	size_t i;
 	size_t pos;
