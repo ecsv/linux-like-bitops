@@ -54,6 +54,7 @@ TESTS_CXX_COMPATIBLE = \
  bitmap_full \
  bitmap_or \
  bitmap_and \
+ bitmap_andnot \
  bitmap_xor \
  bitmap_complement \
  bitmap_intersects \

@@ -936,6 +936,26 @@ static __inline__ void bitmap_and(unsigned long *bitmap,
 }
 
 /**
+ * bitmap_andnot() - Combines bits of two bitmaps using bitwise "andnot"
+ * @bitmap: bitmap to modify
+ * @src1: source bitmap 1
+ * @src2: source bitmap 2
+ * @bits: number of bits
+ */
+static __inline__ void bitmap_andnot(unsigned long *bitmap,
+				     const unsigned long *src1,
+				     const unsigned long *src2, size_t bits)
+{
+	size_t l = BITS_TO_LONGS(bits);
+	size_t i;
+
+	for (i = 0; i < l - 1; i++)
+		bitmap[i] = src1[i] & ~src2[i];
+
+	bitmap[i] = (src1[i] & ~src2[i]) & BITMAP_LAST_WORD_MASK(bits);
+}
+
+/**
  * bitmap_xor() - Combines bits of two bitmaps using bitwise "xor"
  * @bitmap: bitmap to modify
  * @src1: source bitmap 1
