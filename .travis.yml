@@ -18,5 +18,7 @@ env:
    - BUILD_CXX=1 CFLAGS="-O3"
    - BUILD_CXX=0 TESTRUN_WRAPPER='valgrind -q --error-exitcode=126 --track-origins=yes --leak-check=full' CFLAGS="-O1 -g3" TESTRUN_NAME=memcheck
    - BUILD_CXX=1 TESTRUN_WRAPPER='valgrind -q --error-exitcode=126 --track-origins=yes --leak-check=full' CFLAGS="-O1 -g3" TESTRUN_NAME=memcheck
+   - BUILD_CXX=0 CFLAGS="-g3 -fsanitize=undefined -fsanitize=address -fsanitize=leak"
+   - BUILD_CXX=1 CFLAGS="-g3 -fsanitize=undefined -fsanitize=address -fsanitize=leak"
 script:
  - make -C test clean && make -C test
