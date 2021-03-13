@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 /* Minimal Linux-like bit manipulation helper functions
  *
- * SPDX-FileCopyrightText: 2012-2017, Sven Eckelmann <sven@narfation.org>
+ * SPDX-FileCopyrightText: Sven Eckelmann <sven@narfation.org>
  */
 
 #ifndef __LINUX_LIKE_BITOPS_H__

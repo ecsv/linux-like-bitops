@@ -4,7 +4,7 @@
 #
 # Minimal Linux-like bit manipulation helper functions test
 #
-# SPDX-FileCopyrightText: 2012-2017, Sven Eckelmann <sven@narfation.org>
+# SPDX-FileCopyrightText: Sven Eckelmann <sven@narfation.org>
 
 TESTS_CXX_COMPATIBLE = \
  bits_per_byte \
