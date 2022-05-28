@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: Sven Eckelmann <sven@narfation.org>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+name: Valgrind
+
+on: [push, pull_request]
+env:
+  TESTRUN_WRAPPER: "valgrind -q --error-exitcode=126 --track-origins=yes --leak-check=full"
+  CFLAGS: "-O1 -g3"
+  TESTRUN_NAME: memcheck
+
+jobs:
+  run:
+    strategy:
+      matrix:
+        cxx: [0, 1]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install valgrind
+        run: |
+          sudo apt update
+          sudo apt install -y valgrind
+      - uses: actions/checkout@v3
+      - name: Test
+        run: |
+          make -C test clean && make -C test
+        env:
+          BUILD_CXX: ${{ matrix.cxx }}
