@@ -258,6 +258,9 @@ static __inline__ unsigned int hweight_long(unsigned long x)
 	if (BITS_PER_LONG == 32)
 		return hweight32((uint32_t)x);
 
+	if (BITS_PER_LONG == 16)
+		return hweight16((uint16_t)x);
+
 	for (i = 0; x; i++)
 		x &= x - 1;
 
