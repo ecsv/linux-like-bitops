@@ -24,11 +24,27 @@
 /* This is just a proof-of-concept. The actual code is in {decode,encode}.{c,h}
  *
  * see "LoRaWAN® Fragmented Data Block Transport Specification TS004-2.0.0" for
- * details
+ * details.
+ *
+ * But this implementation was modified for devices which don't have any
+ * flash to store the (un)coded symbols and have a very limited amount of
+ * memory. Using a single generation for all symbols is beneficial for the
+ * reliability (efficiency) of the recovery process (of lost symbols) but needs
+ * a lot more CPU time and (much worse for us) memory.
+ *
+ * Instead of only having one generation of uncoded and coded symbols, it splits
+ * up the sequence number range in multiple generations. One part of such a
+ * sequence sub-range is just for uncoded packets and the rest of the sub-range
+ * is for coded packets. If not the whole sub-range is used (by transmitting
+ * coded packets), the missing sequence numbers are just skipped during the
+ * transmission. For the decoder, this looks like lost coded symbols - which
+ * are hopefully not needed for the recovery process.
  */
 
-static uint8_t input[FEC_SYMBOLS_PER_GENERATION][FEC_SYMBOL_SIZE];
-static uint8_t output[FEC_SYMBOLS_PER_GENERATION][FEC_SYMBOL_SIZE];
+#define TEST_LENGTH 781
+
+static uint8_t input[TEST_LENGTH][FEC_SYMBOL_SIZE];
+static uint8_t output[TEST_LENGTH][FEC_SYMBOL_SIZE];
 static size_t output_pos;
 
 #define TEST_FRAG_INDEX 1
@@ -59,7 +75,7 @@ static void create_input_fragments(void)
 	size_t i;
 	size_t j;
 
-	for (i = 0; i < FEC_SYMBOLS_PER_GENERATION; i++) {
+	for (i = 0; i < TEST_LENGTH; i++) {
 		uint8_t *symbol = input[i];
 
 		for (j = 0; j < FEC_SYMBOL_SIZE; j++)
@@ -71,7 +87,7 @@ static void compare_input_output(void)
 {
 	size_t i;
 
-	for (i = 0; i < FEC_SYMBOLS_PER_GENERATION; i++) {
+	for (i = 0; i < TEST_LENGTH; i++) {
 		if (memcmp(input[i], output[i], FEC_SYMBOL_SIZE) == 0)
 			continue;
 
@@ -83,13 +99,13 @@ static void compare_input_output(void)
 	}
 }
 
-static int fill_encoder(struct fec_encode *encoder)
+static int fill_encoder(struct fec_encode *encoder, size_t start_pos)
 {
 	size_t i;
 	int ret;
 
-	for (i = 0; i < FEC_SYMBOLS_PER_GENERATION; i++) {
-		ret = fec_encode_add_symbol(encoder, input[i]);
+	for (i = 0; i < FEC_SYMBOLS_PER_GENERATION && (i + start_pos) < TEST_LENGTH; i++) {
+		ret = fec_encode_add_symbol(encoder, input[start_pos + i]);
 		if (ret < 0)
 			return ret;
 	}
@@ -121,13 +137,18 @@ static int simulate_generation_transfer(struct fec_encode *encoder,
 			return ret;
 		}
 
-		while (fec_decode_symbol(decoder, output[output_pos]))
+		while (output_pos < TEST_LENGTH) {
+			if (!fec_decode_symbol(decoder, output[output_pos]))
+				break;
+
 			output_pos++;
+		}
 	}
 
 #ifdef DEBUG_OUTPUT
 	/* check the decoder state */
-	if (decoder->next_symbol != FEC_SYMBOLS_PER_GENERATION) {
+	if (decoder->next_symbol != FEC_SYMBOLS_PER_GENERATION &&
+	    output_pos < TEST_LENGTH) {
 		for (i = 0; i < FEC_SYMBOLS_PER_GENERATION; i++) {
 			printf("Decoder symbol %zu: ", i);
 			print_parity_row(decoder->parity[i].row);
@@ -145,6 +166,7 @@ static void simulate_block_transfer(void)
 {
 	struct fec_decode decoder;
 	struct fec_encode encoder;
+	size_t i;
 	int ret;
 
 	/* sender */
@@ -153,13 +175,23 @@ static void simulate_block_transfer(void)
 	/* receiver */
 	fec_decode_init(&decoder, TEST_FRAG_INDEX);
 
-	ret = fill_encoder(&encoder);
-	if (ret < 0) {
-		fprintf(stderr, "Failed to fill encoder\n");
-		return;
-	}
+	for (i = 0; i < TEST_LENGTH; i += FEC_SYMBOLS_PER_GENERATION) {
+		ret = fec_encode_start_generation(&encoder);
+		if (ret < 0) {
+			fprintf(stderr, "Failed to start encoder generation\n");
+			break;
+		}
 
-	simulate_generation_transfer(&encoder, &decoder);
+		ret = fill_encoder(&encoder, i);
+		if (ret < 0) {
+			fprintf(stderr, "Failed to fill encoder\n");
+			break;
+		}
+
+		ret = simulate_generation_transfer(&encoder, &decoder);
+		if (ret < 0)
+			break;
+	}
 }
 
 int main(void)

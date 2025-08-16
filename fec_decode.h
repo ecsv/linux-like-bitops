@@ -30,6 +30,9 @@ struct fec_decode {
 
 	/** @frag_index: fragmentation index for the transmission */
 	uint8_t frag_index;
+
+	/** @generation_seqno: first sequence number of the current generation */
+	uint16_t generation_seqno;
 };
 
 void fec_decode_init(struct fec_decode *g, uint8_t frag_index);

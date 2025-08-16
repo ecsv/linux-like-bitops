@@ -25,9 +25,13 @@ struct fec_encode {
 
 	/** @frag_index: fragmentation index for the transmission */
 	uint8_t frag_index;
+
+	/** @generation_seqno: first sequence number of the current generation */
+	uint16_t generation_seqno;
 };
 
 void fec_encode_init(struct fec_encode *g, uint8_t frag_index);
+int fec_encode_start_generation(struct fec_encode *g);
 int fec_encode_add_symbol(struct fec_encode *g,
 			  const uint8_t symbol[FEC_SYMBOL_SIZE]);
 

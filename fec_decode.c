@@ -125,12 +125,38 @@ static void fec_decode_add_symbol(struct fec_decode *g,
 	}
 }
 
+static int fec_decode_start_generation(struct fec_decode *g)
+{
+	if (g->generation_seqno == 0) {
+		/* for unknown reasons, the fragmentation seqno starts at 1
+		 * and not at 0
+		 */
+		g->generation_seqno = 1;
+		return 0;
+	}
+
+	/* a generation must not use sequence numbers which require more than
+	 * 14 bit (due to limitations in the packet header representation)
+	 */
+	if (g->generation_seqno + FEC_SEQNO_PER_GENERATION * 2 > GENMASK(13, 0))
+		return -ERANGE;
+
+	g->generation_seqno += FEC_SEQNO_PER_GENERATION;
+	g->next_symbol = 0;
+
+	memset(g->data, 0, sizeof(g->data));
+	memset(g->parity, 0, sizeof(g->parity));
+
+	return 0;
+}
+
 int fec_decode_add_packet(struct fec_decode *g,
 			  const uint8_t packet[FEC_PACKET_BYTES])
 {
 	uint16_t header = 0;
 	uint8_t frag_index;
 	size_t n;
+	int ret;
 
 	header |= packet[0];
 	header |= packet[1] << 8;
@@ -142,7 +168,38 @@ int fec_decode_add_packet(struct fec_decode *g,
 
 	n = header & GENMASK(13, 0);
 
-	fec_decode_add_symbol(g, &packet[2], n);
+	/* sequence numbers are 1 based. seqno 0 is therefore invalid */
+	if (n == 0)
+		return -ERANGE;
+
+	/* first symobol, just start the first generation */
+	if (g->generation_seqno == 0) {
+		ret = fec_decode_start_generation(g);
+		if (ret < 0)
+			return ret;
+	}
+
+	/* packet from previous generation - just ignore it */
+	if (n < g->generation_seqno)
+		return 0;
+
+	/* there was at least one generation skipped and we can't recover this */
+	if (n >= g->generation_seqno + FEC_SEQNO_PER_GENERATION * 2)
+		return -ERANGE;
+
+	/* the next generation was started */
+	if (n >= g->generation_seqno + FEC_SEQNO_PER_GENERATION) {
+		/* but old generation could not be fully decoded yet */
+		if (g->next_symbol != FEC_SYMBOLS_PER_GENERATION)
+			return -EIO;
+
+		fec_decode_start_generation(g);
+	}
+
+	/* add symbol for decoding - but with generation (relative) sequence
+	 * number and not fragment/packet sequence number
+	 */
+	fec_decode_add_symbol(g, &packet[2], n - g->generation_seqno + 1);
 
 	return 0;
 }
