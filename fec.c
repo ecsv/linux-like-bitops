@@ -123,10 +123,8 @@ static int simulate_generation_transfer(struct fec_encode *encoder,
 
 	for (i = 0; i < FEC_TOTAL_SYMBOLS_PER_GENERATION; i++) {
 		ret = fec_encode_get_packet(encoder, packet);
-		if (ret < 0) {
-			fprintf(stderr, "Failed to create packet\n");
-			return ret;
-		}
+		if (ret < 0)
+			break;
 
 		/* simulate loss */
 		if (random() % 10 == 0)

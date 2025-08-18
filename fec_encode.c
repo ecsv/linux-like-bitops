@@ -141,6 +141,27 @@ int fec_encode_start_generation(struct fec_encode *g)
 	return 0;
 }
 
+static uint16_t fec_encode_skip_padded_uncoded_symbols(const struct fec_encode *g)
+{
+	uint16_t generation_first_symbol;
+
+	generation_first_symbol = fec_encode_first_symbol_of_generation(g);
+
+	/* no padding until (at least) next generation) */
+	if (g->max_symbols >= generation_first_symbol + FEC_SYMBOLS_PER_GENERATION)
+		return 0;
+
+	/* not yet reached padded symbol range of (last) generation */
+	if (g->max_symbols > generation_first_symbol + g->next_read_symbol)
+		return 0;
+
+	/* next symbol is coded -> so already outside of padded symbol range */
+	if (g->next_read_symbol >= FEC_SYMBOLS_PER_GENERATION)
+		return 0;
+
+	return FEC_SYMBOLS_PER_GENERATION - g->next_read_symbol;
+}
+
 int fec_encode_get_packet(struct fec_encode *g, uint8_t *packet)
 {
 	DECLARE_BITMAP(parity, FEC_SYMBOLS_PER_GENERATION);
@@ -150,6 +171,12 @@ int fec_encode_get_packet(struct fec_encode *g, uint8_t *packet)
 	/* don't create packets outside the generation seqno range */
 	if (g->next_read_symbol >= FEC_SEQNO_PER_GENERATION)
 		return -ENODATA;
+
+	/* skip uncoded symbols which are null-padded because outside of
+	 * "allocated" max uncoded symbols of encoder
+	 */
+	if (g->max_symbols != 0)
+		g->next_read_symbol += fec_encode_skip_padded_uncoded_symbols(g);
 
 	/* get symbols to code for current position (1 based) in generation */
 	fec_calculate_parity_row(parity, g->next_read_symbol + 1);
