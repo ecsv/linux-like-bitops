@@ -41,10 +41,11 @@
  * are hopefully not needed for the recovery process.
  */
 
-#define TEST_LENGTH 781
+#define TEST_LENGTH 195
+#define TEST_SYMBOL_SIZE 200U
 
-static uint8_t input[TEST_LENGTH][FEC_SYMBOL_SIZE];
-static uint8_t output[TEST_LENGTH][FEC_SYMBOL_SIZE];
+static uint8_t input[TEST_LENGTH][TEST_SYMBOL_SIZE];
+static uint8_t output[TEST_LENGTH][TEST_SYMBOL_SIZE];
 static size_t output_pos;
 
 #define TEST_FRAG_INDEX 1
@@ -53,7 +54,7 @@ static void print_symbol(const uint8_t symbol[])
 {
 	size_t i;
 
-	for (i = 0; i < FEC_SYMBOL_SIZE; i++)
+	for (i = 0; i < TEST_SYMBOL_SIZE; i++)
 		printf("%02x", symbol[i]);
 }
 
@@ -78,7 +79,7 @@ static void create_input_fragments(void)
 	for (i = 0; i < TEST_LENGTH; i++) {
 		uint8_t *symbol = input[i];
 
-		for (j = 0; j < FEC_SYMBOL_SIZE; j++)
+		for (j = 0; j < TEST_SYMBOL_SIZE; j++)
 			symbol[j] = rand();
 	}
 }
@@ -88,7 +89,7 @@ static void compare_input_output(void)
 	size_t i;
 
 	for (i = 0; i < TEST_LENGTH; i++) {
-		if (memcmp(input[i], output[i], FEC_SYMBOL_SIZE) == 0)
+		if (memcmp(input[i], output[i], TEST_SYMBOL_SIZE) == 0)
 			continue;
 
 		printf("Found difference between symbols %zu: ", i);
@@ -116,7 +117,7 @@ static int fill_encoder(struct fec_encode *encoder, size_t start_pos)
 static int simulate_generation_transfer(struct fec_encode *encoder,
 					struct fec_decode *decoder)
 {
-	uint8_t packet[FEC_PACKET_BYTES];
+	uint8_t packet[TEST_SYMBOL_SIZE + FEC_HEADER_BYTES];
 	size_t i;
 	int ret;
 
@@ -170,10 +171,10 @@ static void simulate_block_transfer(void)
 	int ret;
 
 	/* sender */
-	fec_encode_init(&encoder, TEST_FRAG_INDEX);
+	fec_encode_init(&encoder, TEST_FRAG_INDEX, TEST_SYMBOL_SIZE);
 
 	/* receiver */
-	fec_decode_init(&decoder, TEST_FRAG_INDEX);
+	fec_decode_init(&decoder, TEST_FRAG_INDEX, TEST_SYMBOL_SIZE);
 
 	for (i = 0; i < TEST_LENGTH; i += FEC_SYMBOLS_PER_GENERATION) {
 		ret = fec_encode_start_generation(&encoder);
@@ -192,6 +193,9 @@ static void simulate_block_transfer(void)
 		if (ret < 0)
 			break;
 	}
+
+	fec_decode_destroy(&decoder);
+	fec_encode_destroy(&encoder);
 }
 
 int main(void)

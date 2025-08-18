@@ -64,31 +64,53 @@ void fec_calculate_parity_row(unsigned long *row, unsigned long symbol_no)
 	}
 }
 
-void fec_xor_symbol(uint8_t dst[FEC_SYMBOL_SIZE], const uint8_t src[FEC_SYMBOL_SIZE])
+void fec_xor_symbol(uint8_t *dst, const uint8_t *src, size_t symbol_size)
 {
 	size_t i;
 
-	for (i = 0; i < FEC_SYMBOL_SIZE; i++)
+	for (i = 0; i < symbol_size; i++)
 		dst[i] ^= src[i];
 }
 
-void fec_decode_init(struct fec_decode *g, uint8_t frag_index)
+int fec_decode_init(struct fec_decode *g, uint8_t frag_index,
+		    size_t symbol_size)
 {
+	size_t i;
+
 	memset(g, 0, sizeof(*g));
 
 	g->frag_index = frag_index & 0x3;
+	g->symbol_size = symbol_size;
+
+	/* allocate memory for all receive data + an extra one for temporary
+	 * storage during fec_decode_add_symbol()
+	 */
+	g->symbol_buffer = calloc(FEC_SYMBOLS_PER_GENERATION + 1,
+				  g->symbol_size);
+	if (!g->symbol_size)
+		return -ENOMEM;
+
+	for (i = 0; i < FEC_SYMBOLS_PER_GENERATION; i++)
+		g->data[i] = &g->symbol_buffer[(1 + i) * g->symbol_size];
+
+	return 0;
+}
+
+void fec_decode_destroy(struct fec_decode *g)
+{
+	free(g->symbol_buffer);
 }
 
 static void fec_decode_add_symbol(struct fec_decode *g,
-				  const uint8_t symbol[FEC_SYMBOL_SIZE], size_t n)
+				  const uint8_t *symbol, size_t n)
 {
 	DECLARE_BITMAP(parity, FEC_SYMBOLS_PER_GENERATION);
-	uint8_t s[FEC_SYMBOL_SIZE];
+	uint8_t *s = g->symbol_buffer;
 	size_t end;
 	size_t pos;
 	size_t i;
 
-	memcpy(s, symbol, FEC_SYMBOL_SIZE);
+	memcpy(s, symbol, g->symbol_size);
 	fec_calculate_parity_row(parity, n);
 
 	/* gaussian elimination - forward elimination */
@@ -97,7 +119,7 @@ static void fec_decode_add_symbol(struct fec_decode *g,
 			continue;
 
 		bitmap_xor(parity, parity, g->parity[i].row, FEC_SYMBOLS_PER_GENERATION);
-		fec_xor_symbol(s, g->data[i]);
+		fec_xor_symbol(s, g->data[i], g->symbol_size);
 	}
 
 	if (bitmap_weight(parity, FEC_SYMBOLS_PER_GENERATION) == 0)
@@ -106,7 +128,7 @@ static void fec_decode_add_symbol(struct fec_decode *g,
 	/* save to position based on least significant set bit */
 	pos = find_first_bit(parity, FEC_SYMBOLS_PER_GENERATION);
 	bitmap_copy(g->parity[pos].row, parity, FEC_SYMBOLS_PER_GENERATION);
-	memcpy(g->data[pos], s, FEC_SYMBOL_SIZE);
+	memcpy(g->data[pos], s, g->symbol_size);
 
 	/* gaussian elimination - back substitution */
 	for (end = 0; end < FEC_SYMBOLS_PER_GENERATION; end++) {
@@ -120,7 +142,7 @@ static void fec_decode_add_symbol(struct fec_decode *g,
 
 			bitmap_xor(g->parity[i].row, g->parity[i].row,
 				   g->parity[pos].row, FEC_SYMBOLS_PER_GENERATION);
-			fec_xor_symbol(g->data[i], g->data[pos]);
+			fec_xor_symbol(g->data[i], g->data[pos], g->symbol_size);
 		}
 	}
 }
@@ -144,14 +166,15 @@ static int fec_decode_start_generation(struct fec_decode *g)
 	g->generation_seqno += FEC_SEQNO_PER_GENERATION;
 	g->next_symbol = 0;
 
-	memset(g->data, 0, sizeof(g->data));
+	memset(g->symbol_buffer, 0,
+	       g->symbol_size * (FEC_SYMBOLS_PER_GENERATION + 1));
 	memset(g->parity, 0, sizeof(g->parity));
 
 	return 0;
 }
 
 int fec_decode_add_packet(struct fec_decode *g,
-			  const uint8_t packet[FEC_PACKET_BYTES])
+			  const uint8_t *packet)
 {
 	uint16_t header = 0;
 	uint8_t frag_index;
@@ -204,7 +227,7 @@ int fec_decode_add_packet(struct fec_decode *g,
 	return 0;
 }
 
-bool fec_decode_symbol(struct fec_decode *g, uint8_t symbol[FEC_SYMBOL_SIZE])
+bool fec_decode_symbol(struct fec_decode *g, uint8_t *symbol)
 {
 	if (g->next_symbol >= FEC_SYMBOLS_PER_GENERATION)
 		return false;
@@ -214,7 +237,7 @@ bool fec_decode_symbol(struct fec_decode *g, uint8_t symbol[FEC_SYMBOL_SIZE])
 		return false;
 
 	/* output successfully decoded symbols */
-	memcpy(symbol, g->data[g->next_symbol], FEC_SYMBOL_SIZE);
+	memcpy(symbol, g->data[g->next_symbol], g->symbol_size);
 	g->next_symbol++;
 
 	return true;
