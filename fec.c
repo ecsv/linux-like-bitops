@@ -138,7 +138,7 @@ static int simulate_generation_transfer(struct fec_encode *encoder,
 			return ret;
 		}
 
-		while (output_pos < TEST_LENGTH) {
+		while (true) {
 			if (!fec_decode_symbol(decoder, output[output_pos]))
 				break;
 
@@ -174,7 +174,7 @@ static void simulate_block_transfer(void)
 	fec_encode_init(&encoder, TEST_FRAG_INDEX, TEST_SYMBOL_SIZE);
 
 	/* receiver */
-	fec_decode_init(&decoder, TEST_FRAG_INDEX, TEST_SYMBOL_SIZE);
+	fec_decode_init(&decoder, TEST_FRAG_INDEX, TEST_SYMBOL_SIZE, TEST_LENGTH);
 
 	for (i = 0; i < TEST_LENGTH; i += FEC_SYMBOLS_PER_GENERATION) {
 		ret = fec_encode_start_generation(&encoder);

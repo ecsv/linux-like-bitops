@@ -39,10 +39,16 @@ struct fec_decode {
 
 	/** @generation_seqno: first sequence number of the current generation */
 	uint16_t generation_seqno;
+
+	/**
+	 * @maximum_symbols: maximum symbols the decoder is allowed to decode
+	 *  Can be set to 0 to decode all decodeable symbols
+	 */
+	uint16_t max_symbols;
 };
 
 int fec_decode_init(struct fec_decode *g, uint8_t frag_index,
-		    size_t symbol_size);
+		    size_t symbol_size, uint16_t max_symbols);
 void fec_decode_destroy(struct fec_decode *g);
 int fec_decode_add_packet(struct fec_decode *g,
 			  const uint8_t *packet);
