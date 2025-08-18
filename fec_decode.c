@@ -160,6 +160,23 @@ static uint16_t fec_decode_first_symbol_of_generation(const struct fec_decode *g
 	return generation * FEC_SYMBOLS_PER_GENERATION;
 }
 
+static void fec_decode_prefill_padding_symbols(struct fec_decode *g)
+{
+	uint16_t generation_first_symbol;
+	uint16_t padding_start;
+	size_t i;
+
+	generation_first_symbol = fec_decode_first_symbol_of_generation(g);
+
+	/* no padding until (at least) next generation) */
+	if (g->max_symbols >= generation_first_symbol + FEC_SYMBOLS_PER_GENERATION)
+		return;
+
+	padding_start = g->max_symbols % FEC_SYMBOLS_PER_GENERATION;
+	for (i = padding_start; i < FEC_SYMBOLS_PER_GENERATION; i++)
+		fec_calculate_parity_row(g->parity[i].row, i + 1);
+}
+
 static int fec_decode_start_generation(struct fec_decode *g)
 {
 	if (g->generation_seqno == 0) {
@@ -194,6 +211,14 @@ static int fec_decode_start_generation(struct fec_decode *g)
 	memset(g->symbol_buffer, 0,
 	       g->symbol_size * (FEC_SYMBOLS_PER_GENERATION + 1));
 	memset(g->parity, 0, sizeof(g->parity));
+
+	/* prefill receive buffer with 0 for uncoded symbols which are not
+	 * exchanged between encoder and decoder. There is a contract with
+	 * the encoder to assume that these symbols are always having all bytes
+	 * set to 0
+	 */
+	if (g->max_symbols != 0)
+		fec_decode_prefill_padding_symbols(g);
 
 	return 0;
 }
