@@ -171,7 +171,7 @@ static void simulate_block_transfer(void)
 	int ret;
 
 	/* sender */
-	fec_encode_init(&encoder, TEST_FRAG_INDEX, TEST_SYMBOL_SIZE);
+	fec_encode_init(&encoder, TEST_FRAG_INDEX, TEST_SYMBOL_SIZE, TEST_LENGTH);
 
 	/* receiver */
 	fec_decode_init(&decoder, TEST_FRAG_INDEX, TEST_SYMBOL_SIZE, TEST_LENGTH);

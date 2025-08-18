@@ -34,9 +34,19 @@ struct fec_encode {
 
 	/** @generation_seqno: first sequence number of the current generation */
 	uint16_t generation_seqno;
+
+	/**
+	 * @maximum_symbols: maximum symbols the encoder is receiving as uncoded
+	 *  symbols
+	 *
+	 *  Can be set to 0 to not stop before reaching end of the fragment
+	 *  seqno range
+	 */
+	uint16_t max_symbols;
 };
 
-int fec_encode_init(struct fec_encode *g, uint8_t frag_index, size_t symbol_size);
+int fec_encode_init(struct fec_encode *g, uint8_t frag_index,
+		    size_t symbol_size, uint16_t max_symbols);
 void fec_encode_destroy(struct fec_encode *g);
 int fec_encode_start_generation(struct fec_encode *g);
 int fec_encode_add_symbol(struct fec_encode *g,

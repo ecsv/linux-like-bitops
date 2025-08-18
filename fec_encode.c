@@ -15,7 +15,8 @@
 #include "fec_decode.h"
 #include "fec.h"
 
-int fec_encode_init(struct fec_encode *g, uint8_t frag_index, size_t symbol_size)
+int fec_encode_init(struct fec_encode *g, uint8_t frag_index,
+		    size_t symbol_size, uint16_t max_symbols)
 {
 	size_t i;
 
@@ -23,6 +24,7 @@ int fec_encode_init(struct fec_encode *g, uint8_t frag_index, size_t symbol_size
 
 	g->frag_index = frag_index & 0x3;
 	g->symbol_size = symbol_size;
+	g->max_symbols = max_symbols;
 
 	/* allocate memory for all receive data + an extra one for temporary
 	 * storage during fec_encode_get_packet()
@@ -43,11 +45,36 @@ void fec_encode_destroy(struct fec_encode *g)
 	free(g->symbol_buffer);
 }
 
+static uint16_t fec_encode_first_symbol_of_generation(const struct fec_encode *g)
+{
+	uint16_t generation;
+
+	if (g->generation_seqno == 0)
+		return 0;
+
+	generation = (g->generation_seqno - 1) / FEC_SEQNO_PER_GENERATION;
+
+	return generation * FEC_SYMBOLS_PER_GENERATION;
+}
+
 int fec_encode_add_symbol(struct fec_encode *g,
 			  const uint8_t *symbol)
 {
 	if (g->next_write_symbol >= FEC_SYMBOLS_PER_GENERATION)
 		return -ENOBUFS;
+
+	/* already saved all symbols which were requested,
+	 * stop to save more
+	 */
+	if (g->max_symbols != 0) {
+		uint16_t symbol_seq;
+
+		symbol_seq = fec_encode_first_symbol_of_generation(g);
+		symbol_seq += g->next_write_symbol;
+
+		if (symbol_seq >= g->max_symbols)
+			return -ENOBUFS;
+	}
 
 	/* when already having send a symbol, don't overwrite it */
 	if (g->next_read_symbol > g->next_write_symbol)
@@ -83,16 +110,28 @@ int fec_encode_start_generation(struct fec_encode *g)
 		 * and not at 0
 		 */
 		g->generation_seqno = 1;
-		return 0;
+	} else {
+		/* a generation must not use sequence numbers which require more
+		 * than 14 bit (due to limitations in the packet header
+		 * representation)
+		 */
+		if (g->generation_seqno + FEC_SEQNO_PER_GENERATION * 2 > GENMASK(13, 0))
+			return -ERANGE;
+
+		/* don't start new generation when already submitted all symbols */
+		if (g->max_symbols != 0) {
+			uint16_t symbol_seqno;
+
+			symbol_seqno = fec_encode_first_symbol_of_generation(g);
+			symbol_seqno += FEC_SYMBOLS_PER_GENERATION;
+
+			if (symbol_seqno >= g->max_symbols)
+				return -ERANGE;
+		}
+
+		g->generation_seqno += FEC_SEQNO_PER_GENERATION;
 	}
 
-	/* a generation must not use sequence numbers which require more than
-	 * 14 bit (due to limitations in the packet header representation)
-	 */
-	if (g->generation_seqno + FEC_SEQNO_PER_GENERATION * 2 > GENMASK(13, 0))
-		return -ERANGE;
-
-	g->generation_seqno += FEC_SEQNO_PER_GENERATION;
 	g->next_read_symbol = 0;
 	g->next_write_symbol = 0;
 
