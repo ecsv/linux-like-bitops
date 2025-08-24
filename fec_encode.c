@@ -31,8 +31,10 @@ int fec_encode_init(struct fec_encode *g, uint8_t frag_index,
 	 */
 	g->symbol_buffer = calloc(FEC_SYMBOLS_PER_GENERATION + 1,
 				  g->symbol_size);
-	if (!g->symbol_size)
+	if (!g->symbol_buffer) {
+		memset(g->data, 0, sizeof(g->data));
 		return -ENOMEM;
+	}
 
 	for (i = 0; i < FEC_SYMBOLS_PER_GENERATION; i++)
 		g->data[i] = &g->symbol_buffer[(1 + i) * g->symbol_size];
@@ -43,6 +45,9 @@ int fec_encode_init(struct fec_encode *g, uint8_t frag_index,
 void fec_encode_destroy(struct fec_encode *g)
 {
 	free(g->symbol_buffer);
+
+	g->symbol_buffer = NULL;
+	memset(g->data, 0, sizeof(g->data));
 }
 
 static uint16_t fec_encode_first_symbol_of_generation(const struct fec_encode *g)
