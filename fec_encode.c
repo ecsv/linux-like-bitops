@@ -146,18 +146,28 @@ int fec_encode_start_generation(struct fec_encode *g)
 	return 0;
 }
 
-static uint16_t fec_encode_skip_padded_uncoded_symbols(const struct fec_encode *g)
+static uint16_t fec_encode_uncoded_symbols(const struct fec_encode *g)
 {
 	uint16_t generation_first_symbol;
 
 	generation_first_symbol = fec_encode_first_symbol_of_generation(g);
 
+	if (g->max_symbols == 0)
+		return FEC_SYMBOLS_PER_GENERATION;
+
 	/* no padding until (at least) next generation) */
 	if (g->max_symbols >= generation_first_symbol + FEC_SYMBOLS_PER_GENERATION)
-		return 0;
+		return FEC_SYMBOLS_PER_GENERATION;
+
+	return g->max_symbols - generation_first_symbol;
+}
+
+static uint16_t fec_encode_skip_padded_uncoded_symbols(const struct fec_encode *g)
+{
+	uint16_t uncoded_symbols = fec_encode_uncoded_symbols(g);
 
 	/* not yet reached padded symbol range of (last) generation */
-	if (g->max_symbols > generation_first_symbol + g->next_read_symbol)
+	if (uncoded_symbols > g->next_read_symbol)
 		return 0;
 
 	/* next symbol is coded -> so already outside of padded symbol range */
@@ -167,8 +177,10 @@ static uint16_t fec_encode_skip_padded_uncoded_symbols(const struct fec_encode *
 	return FEC_SYMBOLS_PER_GENERATION - g->next_read_symbol;
 }
 
-int fec_encode_get_packet(struct fec_encode *g, uint8_t *packet)
+static int fec_encode_get_packet_unpadded(struct fec_encode *g, uint8_t *packet)
 {
+	uint16_t uncoded_symbols = fec_encode_uncoded_symbols(g);
+	DECLARE_BITMAP(parity_unpadded, FEC_SYMBOLS_PER_GENERATION);
 	DECLARE_BITMAP(parity, FEC_SYMBOLS_PER_GENERATION);
 	uint8_t *symbol = g->symbol_buffer;
 	size_t i;
@@ -186,6 +198,16 @@ int fec_encode_get_packet(struct fec_encode *g, uint8_t *packet)
 	/* get symbols to code for current position (1 based) in generation */
 	fec_calculate_parity_row(parity, g->next_read_symbol + 1);
 
+	/* check if the coded symbol uses any non-padded uncoded symbols */
+	bitmap_set(parity_unpadded, 0, uncoded_symbols);
+	bitmap_and(parity_unpadded, parity_unpadded, parity,
+		   FEC_SYMBOLS_PER_GENERATION);
+
+	if (bitmap_weight(parity_unpadded, FEC_SYMBOLS_PER_GENERATION) == 0) {
+		g->next_read_symbol++;
+		return -EAGAIN;
+	}
+
 	/* combine symbols */
 	memset(symbol, 0, g->symbol_size);
 	for_each_set_bit(i, parity, FEC_SYMBOLS_PER_GENERATION)
@@ -195,6 +217,17 @@ int fec_encode_get_packet(struct fec_encode *g, uint8_t *packet)
 			       g->generation_seqno + g->next_read_symbol);
 
 	g->next_read_symbol++;
+
+	return 0;
+}
+
+int fec_encode_get_packet(struct fec_encode *g, uint8_t *packet)
+{
+	int ret;
+
+	do {
+		ret = fec_encode_get_packet_unpadded(g, packet);
+	} while (ret == -EAGAIN);
 
 	return 0;
 }
