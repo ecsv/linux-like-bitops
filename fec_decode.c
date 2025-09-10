@@ -27,7 +27,7 @@ void fec_calculate_parity_row(unsigned long *row, unsigned long symbol_no)
 	unsigned int m = 0;
 	uint32_t x;
 
-	bitmap_clear(row, 0, FEC_SYMBOLS_PER_GENERATION - 1);
+	bitmap_clear(row, 0, FEC_SYMBOLS_PER_GENERATION);
 
 	/* it is odd but symbol_no starts at 1 and not 0 */
 	if (symbol_no <= FEC_SYMBOLS_PER_GENERATION) {
