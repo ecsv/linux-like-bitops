@@ -111,8 +111,8 @@ static void fec_encode_fill_tx_buf(uint8_t *packet,
 int fec_encode_start_generation(struct fec_encode *g)
 {
 	if (g->generation_seqno == 0) {
-		/* for unknown reasons, the fragmentation seqno starts at 1
-		 * and not at 0
+		/* for unknown reasons, the fragmentation seqno starts
+		 * (according to spec) at 1 and not at 0
 		 */
 		g->generation_seqno = 1;
 	} else {

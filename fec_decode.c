@@ -29,7 +29,7 @@ void fec_calculate_parity_row(unsigned long *row, unsigned long symbol_no)
 
 	bitmap_clear(row, 0, FEC_SYMBOLS_PER_GENERATION);
 
-	/* it is odd but symbol_no starts at 1 and not 0 */
+	/* it is odd but symbol_no starts (according to spec) at 1 and not 0 */
 	if (symbol_no <= FEC_SYMBOLS_PER_GENERATION) {
 		set_bit(symbol_no - 1, row);
 		return;
@@ -185,8 +185,8 @@ static void fec_decode_prefill_padding_symbols(struct fec_decode *g)
 static int fec_decode_start_generation(struct fec_decode *g)
 {
 	if (g->generation_seqno == 0) {
-		/* for unknown reasons, the fragmentation seqno starts at 1
-		 * and not at 0
+		/* for unknown reasons, the fragmentation seqno starts
+		 * (according to spec) at 1 and not at 0
 		 */
 		g->generation_seqno = 1;
 	} else {
