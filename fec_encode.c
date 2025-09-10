@@ -180,8 +180,8 @@ static uint16_t fec_encode_skip_padded_uncoded_symbols(const struct fec_encode *
 static int fec_encode_get_packet_unpadded(struct fec_encode *g, uint8_t *packet)
 {
 	uint16_t uncoded_symbols = fec_encode_uncoded_symbols(g);
-	DECLARE_BITMAP(parity_unpadded, FEC_SYMBOLS_PER_GENERATION);
-	DECLARE_BITMAP(parity, FEC_SYMBOLS_PER_GENERATION);
+	DECLARE_BITMAP(parity_unpadded, FEC_SYMBOLS_PER_GENERATION) = {0};
+	DECLARE_BITMAP(parity, FEC_SYMBOLS_PER_GENERATION) = {0};
 	uint8_t *symbol = g->symbol_buffer;
 	size_t i;
 

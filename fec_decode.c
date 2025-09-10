@@ -110,7 +110,7 @@ void fec_decode_destroy(struct fec_decode *g)
 static void fec_decode_add_symbol(struct fec_decode *g,
 				  const uint8_t *symbol, size_t n)
 {
-	DECLARE_BITMAP(parity, FEC_SYMBOLS_PER_GENERATION);
+	DECLARE_BITMAP(parity, FEC_SYMBOLS_PER_GENERATION) = {0};
 	uint8_t *s = g->symbol_buffer;
 	size_t end;
 	size_t pos;
