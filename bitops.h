@@ -277,7 +277,8 @@ static __inline__ unsigned int hweight_long(unsigned long x)
  */
 static __inline__ uint8_t bitops_rol8(uint8_t x, size_t n)
 {
-	return (x << n) | (x >> ((BITS_PER_BYTE * sizeof(x)) - n));
+	return (x << (n & (BITS_PER_BYTE * sizeof(x) - 1))) |
+	       (x >> ((-n) & (BITS_PER_BYTE * sizeof(x) - 1)));
 }
 
 /**
@@ -289,7 +290,8 @@ static __inline__ uint8_t bitops_rol8(uint8_t x, size_t n)
  */
 static __inline__ uint16_t bitops_rol16(uint16_t x, size_t n)
 {
-	return (x << n) | (x >> ((BITS_PER_BYTE * sizeof(x)) - n));
+	return (x << (n & (BITS_PER_BYTE * sizeof(x) - 1))) |
+	       (x >> ((-n) & (BITS_PER_BYTE * sizeof(x) - 1)));
 }
 
 /**
@@ -301,7 +303,8 @@ static __inline__ uint16_t bitops_rol16(uint16_t x, size_t n)
  */
 static __inline__ uint32_t bitops_rol32(uint32_t x, size_t n)
 {
-	return (x << n) | (x >> ((BITS_PER_BYTE * sizeof(x)) - n));
+	return (x << (n & (BITS_PER_BYTE * sizeof(x) - 1))) |
+	       (x >> ((-n) & (BITS_PER_BYTE * sizeof(x) - 1)));
 }
 
 /**
@@ -313,7 +316,8 @@ static __inline__ uint32_t bitops_rol32(uint32_t x, size_t n)
  */
 static __inline__ uint64_t bitops_rol64(uint64_t x, size_t n)
 {
-	return (x << n) | (x >> ((BITS_PER_BYTE * sizeof(x)) - n));
+	return (x << (n & (BITS_PER_BYTE * sizeof(x) - 1))) |
+	       (x >> ((-n) & (BITS_PER_BYTE * sizeof(x) - 1)));
 }
 
 /**
@@ -325,7 +329,8 @@ static __inline__ uint64_t bitops_rol64(uint64_t x, size_t n)
  */
 static __inline__ unsigned long bitops_rol_long(unsigned long x, size_t n)
 {
-	return (x << n) | (x >> ((BITS_PER_BYTE * sizeof(x)) - n));
+	return (x << (n & (BITS_PER_BYTE * sizeof(x) - 1))) |
+	       (x >> ((-n) & (BITS_PER_BYTE * sizeof(x) - 1)));
 }
 
 /**
@@ -337,7 +342,8 @@ static __inline__ unsigned long bitops_rol_long(unsigned long x, size_t n)
  */
 static __inline__ uint8_t bitops_ror8(uint8_t x, size_t n)
 {
-	return (x >> n) | (x << ((BITS_PER_BYTE * sizeof(x)) - n));
+	return (x >> (n & (BITS_PER_BYTE * sizeof(x) - 1))) |
+	       (x << ((-n) & (BITS_PER_BYTE * sizeof(x) - 1)));
 }
 
 /**
@@ -349,7 +355,8 @@ static __inline__ uint8_t bitops_ror8(uint8_t x, size_t n)
  */
 static __inline__ uint16_t bitops_ror16(uint16_t x, size_t n)
 {
-	return (x >> n) | (x << ((BITS_PER_BYTE * sizeof(x)) - n));
+	return (x >> (n & (BITS_PER_BYTE * sizeof(x) - 1))) |
+	       (x << ((-n) & (BITS_PER_BYTE * sizeof(x) - 1)));
 }
 
 /**
@@ -361,7 +368,8 @@ static __inline__ uint16_t bitops_ror16(uint16_t x, size_t n)
  */
 static __inline__ uint32_t bitops_ror32(uint32_t x, size_t n)
 {
-	return (x >> n) | (x << ((BITS_PER_BYTE * sizeof(x)) - n));
+	return (x >> (n & (BITS_PER_BYTE * sizeof(x) - 1))) |
+	       (x << ((-n) & (BITS_PER_BYTE * sizeof(x) - 1)));
 }
 
 /**
@@ -373,7 +381,8 @@ static __inline__ uint32_t bitops_ror32(uint32_t x, size_t n)
  */
 static __inline__ uint64_t bitops_ror64(uint64_t x, size_t n)
 {
-	return (x >> n) | (x << ((BITS_PER_BYTE * sizeof(x)) - n));
+	return (x >> (n & (BITS_PER_BYTE * sizeof(x) - 1))) |
+	       (x << ((-n) & (BITS_PER_BYTE * sizeof(x) - 1)));
 }
 
 /**
@@ -385,7 +394,8 @@ static __inline__ uint64_t bitops_ror64(uint64_t x, size_t n)
  */
 static __inline__ unsigned long bitops_ror_long(unsigned long x, size_t n)
 {
-	return (x >> n) | (x << ((BITS_PER_BYTE * sizeof(x)) - n));
+	return (x >> (n & (BITS_PER_BYTE * sizeof(x) - 1))) |
+	       (x << ((-n) & (BITS_PER_BYTE * sizeof(x) - 1)));
 }
 
 /**
