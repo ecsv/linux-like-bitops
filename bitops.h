@@ -1000,7 +1000,7 @@ static __inline__ void bitmap_shift_right(unsigned long *bitmap,
 	unsigned long high;
 	unsigned long low;
 
-	if (n > bits) {
+	if (n >= bits) {
 		bitmap_zero(bitmap, bits);
 		return;
 	}
